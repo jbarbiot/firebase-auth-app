@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Auth App</title>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(173, 216, 230, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .container::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -30%;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(255, 192, 203, 0.3) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            font-weight: 300;
+            color: #999;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #7fb3d5;
+            box-shadow: 0 0 0 3px rgba(127, 179, 213, 0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px 16px;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .toggle-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .toggle-link a {
+            color: #7fb3d5;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .toggle-link a:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border-left: 4px solid #c33;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border-left: 4px solid #3c3;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .dashboard {
+            text-align: center;
+        }
+
+        .user-info {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .user-info p {
+            margin: 10px 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .user-info strong {
+            color: #000;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: #f0f0f0;
+            color: #000;
+            border: 1px solid #e0e0e0;
+        }
+
+        .logout-btn:hover {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content">
+            <!-- Login Form -->
+            <div id="loginForm" class="form-container">
+                <h1>Bem-vindo</h1>
+                <p class="subtitle">Acesse sua conta</p>
+                <div id="loginError" class="error hidden"></div>
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" id="loginEmail" required placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Senha</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••">
+                    </div>
+                    <button type="submit">Entrar</button>
+                </form>
+                <div class="toggle-link">
+                    Não tem conta? <a onclick="toggleForms()">Crie uma agora</a>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" class="form-container hidden">
+                <h1>Criar Conta</h1>
+                <p class="subtitle">Junte-se a nós</p>
+                <div id="signupError" class="error hidden"></div>
+                <form onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label>Nome</label>
+                        <input type="text" id="firstName" required placeholder="João">
+                    </div>
+                    <div class="form-group">
+                        <label>Sobrenome</label>
+                        <input type="text" id="lastName" required placeholder="Silva">
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Nascimento</label>
+                        <input type="date" id="birthDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" id="signupEmail" required placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Senha</label>
+                        <input type="password" id="signupPassword" required placeholder="••••••••">
+                    </div>
+                    <button type="submit">Criar Conta</button>
+                </form>
+                <div class="toggle-link">
+                    Já tem conta? <a onclick="toggleForms()">Faça login</a>
+                </div>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboard" class="dashboard hidden">
+                <h1>Bem-vindo!</h1>
+                <p class="subtitle">Seus dados</p>
+                <div class="user-info">
+                    <p><strong>Nome:</strong> <span id="displayName"></span></p>
+                    <p><strong>Sobrenome:</strong> <span id="displayLastName"></span></p>
+                    <p><strong>Data de Nascimento:</strong> <span id="displayBirthDate"></span></p>
+                    <p><strong>E-mail:</strong> <span id="displayEmail"></span></p>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDl6V2tz2zqv-eX7WAJde2SsJnZCVMQmXA",
+            authDomain: "fir-auth-app-2ba35.firebaseapp.com",
+            projectId: "fir-auth-app-2ba35",
+            storageBucket: "fir-auth-app-2ba35.firebasestorage.app",
+            messagingSenderId: "776547638457",
+            appId: "1:776547638457:web:1d191ddb3a97d9ddb48f68"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Check auth state
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                loadUserData(user);
+            } else {
+                showLoginForm();
+            }
+        });
+
+        function toggleForms() {
+            document.getElementById('loginForm').classList.toggle('hidden');
+            document.getElementById('signupForm').classList.toggle('hidden');
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('signupError').classList.add('hidden');
+        }
+
+        function showLoginForm() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+        }
+
+        async function handleSignup(event) {
+            event.preventDefault();
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const birthDate = document.getElementById('birthDate').value;
+
+            try {
+                const result = await auth.createUserWithEmailAndPassword(email, password);
+                const user = result.user;
+
+                // Save user data to Firestore
+                await db.collection('users').doc(user.uid).set({
+                    uid: user.uid,
+                    firstName: firstName,
+                    lastName: lastName,
+                    birthDate: birthDate,
+                    email: email,
+                    createdAt: new Date()
+                });
+
+                showDashboard();
+                loadUserData(user);
+            } catch (error) {
+                document.getElementById('signupError').textContent = 'Erro: ' + error.message;
+                document.getElementById('signupError').classList.remove('hidden');
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const result = await auth.signInWithEmailAndPassword(email, password);
+                showDashboard();
+                loadUserData(result.user);
+            } catch (error) {
+                let errorMsg = 'Usuário ou senha incorretos';
+                if (error.code === 'auth/user-not-found') {
+                    errorMsg = 'Usuário não cadastrado';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMsg = 'Senha incorreta';
+                }
+                document.getElementById('loginError').textContent = 'Erro: ' + errorMsg;
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+
+        async function loadUserData(user) {
+            try {
+                const doc = await db.collection('users').doc(user.uid).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('displayName').textContent = data.firstName;
+                    document.getElementById('displayLastName').textContent = data.lastName;
+                    document.getElementById('displayBirthDate').textContent = new Date(data.birthDate).toLocaleDateString('pt-BR');
+                    document.getElementById('displayEmail').textContent = data.email;
+                }
+                showDashboard();
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+        }
+
+        function handleLogout() {
+            auth.signOut().then(() => {
+                showLoginForm();
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+            });
+        }
+    </script>
+</body>
+</html>
